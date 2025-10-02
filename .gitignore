@@ -1,0 +1,51 @@
+# Cache directories - system generated performance files
+cache/
+__pycache__/
+
+# Python cache and compiled files
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Generated output files - these can be recreated
+*.csv
+*.json
+**/output/
+logs/
+
+# Keep specific CSV files we want to track
+!tickers.csv
+
+# Temporary and test files
+temp/
+tmp/
+test_*
+debug_*
+
+# Documentation build output
+build/
+dist/
+*.egg-info/
