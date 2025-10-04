@@ -190,7 +190,7 @@ def get_expected_f_scores() -> dict:
     return {
         "Intellego Technologies": 0,  # Updated based on actual results
         "SAAB": 7,  # Updated based on actual results  
-        "BioArctic": 1  # Updated based on actual results
+        "BioArctic": 1  # Updated based on actual results (2024 data)
     }
 
 
