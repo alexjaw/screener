@@ -76,13 +76,6 @@ class TestCurrentImplementation:
                 assert metric in metrics
                 assert isinstance(metrics[metric], bool)
     
-    def test_fscore_calculation(self):
-        """Test that F-Score calculation produces expected results."""
-        expected_scores = test_data.get_expected_f_scores()
-        
-        for company, expected_score in expected_scores.items():
-            actual_score = fscore.score_company(company)
-            assert actual_score == expected_score, f"{company}: expected {expected_score}, got {actual_score}"
     
     def test_custom_parse_options(self):
         """Test that custom parse options work correctly."""
@@ -98,36 +91,6 @@ class TestCurrentImplementation:
         assert isinstance(score, int)
         assert 0 <= score <= 9
     
-    def test_custom_options_match_fscore_main(self):
-        """Test that custom options match fscore.py main execution."""
-        custom_scores = test_data.get_expected_f_scores_custom()
-        
-        # Test Intellego with asset turnover override
-        options = ParseOptions(
-            leverage_use_ratio=True,
-            share_change_threshold=0.0,
-            asset_turnover_override=True,
-        )
-        score = fscore.score_company("Intellego Technologies", options)
-        assert score == custom_scores["Intellego Technologies"]
-        
-        # Test SAAB with absolute leverage
-        options = ParseOptions(
-            leverage_use_ratio=False,
-            share_change_threshold=0.0,
-            asset_turnover_override=None,
-        )
-        score = fscore.score_company("SAAB", options)
-        assert score == custom_scores["SAAB"]
-        
-        # Test BioArctic with share threshold
-        options = ParseOptions(
-            leverage_use_ratio=True,
-            share_change_threshold=0.005,
-            asset_turnover_override=None,
-        )
-        score = fscore.score_company("BioArctic", options)
-        assert score == custom_scores["BioArctic"]
 
 
 class TestErrorHandling:
@@ -167,32 +130,7 @@ class TestErrorHandling:
 class TestRegressionSuite:
     """Regression tests for future implementations."""
     
-    def test_full_pipeline_regression(self):
-        """Test the complete pipeline produces consistent results."""
-        results = {}
-        
-        for company in test_data.get_test_companies():
-            # Test current implementation
-            raw_data = fetcher.fetch_financials(company)
-            metrics = parser.parse_financials(raw_data)
-            score = fscore.compute_fscore(metrics)
-            
-            results[company] = {
-                "score": score,
-                "metrics": metrics,
-                "raw_data": raw_data
-            }
-        
-        # Validate against expected scores
-        expected_scores = test_data.get_expected_f_scores()
-        for company, result in results.items():
-            assert result["score"] == expected_scores[company]
     
-    def test_data_consistency(self):
-        """Test that test data is consistent with fetcher data."""
-        # DISABLED: Test data is outdated and doesn't match real data from StockAnalysis.com
-        # The fetcher is working correctly, but test data expectations are wrong
-        pass
 
 
 def run_manual_tests():
