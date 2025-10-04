@@ -42,7 +42,9 @@ logs/
 # Temporary and test files
 temp/
 tmp/
-test_*
+test_*.csv
+test_*.json
+test_*.log
 debug_*
 
 # Documentation build output
