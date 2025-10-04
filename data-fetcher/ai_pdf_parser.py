@@ -10,6 +10,8 @@ and can handle complex layouts, tables, and various document formats.
 
 import os
 import json
+import requests
+from pathlib import Path
 import base64
 import tempfile
 from typing import Dict, List, Optional, Any
@@ -71,6 +73,132 @@ class AIPDFParser:
             raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
         
         self.client = openai.OpenAI(api_key=self.api_key)
+        
+        # Load annual report URLs and setup directories
+        self.annual_report_urls = self._load_annual_report_urls()
+        self.annual_reports_dir = Path("annual-reports")
+        self.annual_reports_dir.mkdir(exist_ok=True)
+    
+    def _load_annual_report_urls(self) -> Dict[str, Any]:
+        """Load annual report URLs from configuration file."""
+        try:
+            with open("annual_report_urls.json", "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print("⚠️ annual_report_urls.json not found, using fallback URLs")
+            return {
+                "annual_report_urls": {
+                    "SAAB": {
+                        "annual_report_2024": {
+                            "download_url": "https://www.saab.com/globalassets/corporate/investor-relations/annual-reports/2025/20250303-saab-publishes-its-2024-annual-and-sustainability-report-en-0-4999946.pdf",
+                            "filename": "saab-2024-annual-report.pdf"
+                        }
+                    }
+                }
+            }
+    
+    def _download_annual_report(self, company: str, year: int = 2024) -> Optional[str]:
+        """Download annual report for a company if not already present."""
+        # Try different company name variations
+        company_variations = [
+            company,
+            company.upper(),
+            company.lower(),
+            company.replace(" ", ""),
+            company.replace(" ", "_"),
+            company.replace(" ", "-")
+        ]
+        
+        # Check if we have URL for this company
+        report_info = None
+        for variation in company_variations:
+            if variation in self.annual_report_urls.get("annual_report_urls", {}):
+                report_info = self.annual_report_urls["annual_report_urls"][variation].get(f"annual_report_{year}")
+                if report_info:
+                    break
+        
+        if not report_info:
+            print(f"❌ No annual report URL found for {company}")
+            return None
+        
+        filename = report_info["filename"]
+        download_url = report_info["download_url"]
+        file_path = self.annual_reports_dir / filename
+        
+        # Check if file already exists
+        if file_path.exists():
+            print(f"📁 Using existing annual report: {filename}")
+            return str(file_path)
+        
+        # Download the report
+        print(f"📥 Downloading annual report for {company}...")
+        try:
+            response = requests.get(download_url, timeout=30)
+            response.raise_for_status()
+            
+            # Check if we got HTML instead of PDF
+            content_type = response.headers.get('content-type', '').lower()
+            if 'html' in content_type:
+                print(f"📄 Got HTML page, searching for PDF download link...")
+                # Try to find PDF download link in HTML
+                pdf_url = self._extract_pdf_url_from_html(response.text, download_url)
+                if pdf_url:
+                    print(f"🔗 Found PDF URL: {pdf_url}")
+                    # Download the actual PDF
+                    pdf_response = requests.get(pdf_url, timeout=30)
+                    pdf_response.raise_for_status()
+                    response = pdf_response
+                else:
+                    print(f"❌ Could not find PDF download link in HTML")
+                    return None
+            
+            # Check file size
+            max_size = self.annual_report_urls.get("download_settings", {}).get("max_file_size_mb", 50) * 1024 * 1024
+            if len(response.content) > max_size:
+                print(f"❌ File too large: {len(response.content) / 1024 / 1024:.1f}MB")
+                return None
+            
+            # Save the file
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+            
+            print(f"✅ Downloaded: {filename} ({len(response.content) / 1024 / 1024:.1f}MB)")
+            return str(file_path)
+            
+        except Exception as e:
+            print(f"❌ Failed to download annual report for {company}: {e}")
+            return None
+    
+    def _extract_pdf_url_from_html(self, html_content: str, base_url: str) -> Optional[str]:
+        """Extract PDF download URL from HTML content."""
+        import re
+        from urllib.parse import urljoin
+        
+        # Look for PDF links in various patterns, prioritizing annual reports
+        pdf_patterns = [
+            r'href=["\']([^"\']*annual[^"\']*2024[^"\']*\.pdf[^"\']*)["\']',
+            r'href=["\']([^"\']*annual[^"\']*report[^"\']*\.pdf[^"\']*)["\']',
+            r'href=["\']([^"\']*2024[^"\']*annual[^"\']*\.pdf[^"\']*)["\']',
+            r'href=["\']([^"\']*annual[^"\']*\.pdf[^"\']*)["\']',
+            r'href=["\']([^"\']*report[^"\']*2024[^"\']*\.pdf[^"\']*)["\']',
+            r'href=["\']([^"\']*\.pdf[^"\']*)["\']'
+        ]
+        
+        for pattern in pdf_patterns:
+            matches = re.findall(pattern, html_content, re.IGNORECASE)
+            for match in matches:
+                # Convert relative URLs to absolute
+                pdf_url = urljoin(base_url, match)
+                
+                # Skip non-annual report PDFs
+                if any(skip_word in pdf_url.lower() for skip_word in ['transparency', 'disclosure', 'interim', 'quarterly', 'q1', 'q2', 'q3', 'q4']):
+                    continue
+                
+                # Check if it looks like an annual report
+                if any(keyword in pdf_url.lower() for keyword in ['annual', 'report', '2024']):
+                    return pdf_url
+        
+        return None
     
     def find_table_of_contents(self, pdf_path: str) -> Dict[str, int]:
         """Find Table of Contents and extract page numbers for financial sections."""
@@ -334,7 +462,17 @@ Return ONLY the JSON object, no additional text.
         doc.close()
         return "\n".join(text_content)
     
-    def extract_financial_data_from_pdf(self, pdf_path: str, company_name: str = "SAAB") -> Dict[str, Any]:
+    def extract_financial_data_from_pdf(self, company_name: str, year: int = 2024) -> Dict[str, Any]:
+        """Extract financial data from a company's annual report PDF."""
+        # First try to download the annual report
+        pdf_path = self._download_annual_report(company_name, year)
+        if not pdf_path:
+            print(f"❌ Could not obtain annual report for {company_name}")
+            return {}
+        
+        return self._extract_financial_data_from_pdf_file(pdf_path, company_name)
+    
+    def _extract_financial_data_from_pdf_file(self, pdf_path: str, company_name: str = "SAAB") -> Dict[str, Any]:
         """Extract financial data from PDF using AI text analysis."""
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")

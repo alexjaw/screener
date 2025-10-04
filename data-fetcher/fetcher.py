@@ -343,25 +343,9 @@ class FinancialDataScraper:
     def _try_ai_pdf_parser(self, company: str) -> Optional[Dict[str, Any]]:
         """Try to use AI PDF parser for annual reports."""
         try:
-            # Map company names to their annual report paths
-            annual_reports = {
-                'saab': 'annual-reports/20250303-saab-publishes-its-2024-annual-and-sustainability-report-en-0-4999946.pdf',
-                # Add more companies as we get their reports
-            }
-            
-            company_key = company.lower().strip()
-            if company_key not in annual_reports:
-                print(f"No annual report available for {company}")
-                return None
-            
-            pdf_path = annual_reports[company_key]
-            if not os.path.exists(pdf_path):
-                print(f"Annual report not found: {pdf_path}")
-                return None
-            
             print(f"🤖 Using AI to parse {company} annual report...")
             ai_parser = AIPDFParser()
-            extracted_data = ai_parser.extract_financial_data_from_pdf(pdf_path, company)
+            extracted_data = ai_parser.extract_financial_data_from_pdf(company)
             
             if extracted_data:
                 # Convert to dictionary format expected by the fetcher
@@ -384,7 +368,7 @@ class FinancialDataScraper:
                     'cogs_prev': extracted_data.get('cogs_prev', 0),
                     'shares_cur': extracted_data.get('shares_cur', 1000000),
                     'shares_prev': extracted_data.get('shares_prev', 1000000),
-                    'source_url': pdf_path,
+                    'source_url': f"AI-parsed annual report for {company}",
                     'report_date': extracted_data.get('fiscal_years', {}).get('current', '2024'),
                     'data_collected_at': datetime.now().isoformat()
                 }
