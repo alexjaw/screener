@@ -41,6 +41,11 @@ class FinancialData:
     # Shares Outstanding
     shares_cur: float
     shares_prev: float
+    
+    # Source information
+    source_url: Optional[str] = None
+    report_date: Optional[str] = None
+    data_collected_at: Optional[str] = None
 
 
 @dataclass
