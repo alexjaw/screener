@@ -39,13 +39,8 @@ logs/
 # Keep specific CSV files we want to track
 !tickers.csv
 
-# Temporary and test files
-temp/
-tmp/
-test_*.csv
-test_*.json
-test_*.log
-debug_*
+# Annual reports (large PDF files)
+annual-reports/
 
 # Documentation build output
 build/

@@ -411,12 +411,12 @@ class FinancialDataScraper:
         
         print(f"Fetching fresh data for {company}...")
         
-        # Try multiple sources
+        # Try multiple sources with smart fallback
         sources = [
+            ('StockAnalysis', self._scrape_stockanalysis),
             ('AI PDF Parser', self._try_ai_pdf_parser),
             ('Company Website', self._scrape_company_website),
-            ('MFN Storage', self._scrape_mfn_storage),
-            ('StockAnalysis', self._scrape_stockanalysis)
+            ('MFN Storage', self._scrape_mfn_storage)
         ]
         
         scraped_data = None
@@ -427,9 +427,18 @@ class FinancialDataScraper:
                 print(f"Trying {source_name}...")
                 data = scraper_func(company)
                 if data and 'revenue_cur' in data:
+                    # Check data quality for StockAnalysis.com
+                    if source_name == 'StockAnalysis' and not self._is_data_sufficient(data):
+                        print(f"⚠️ StockAnalysis.com data insufficient for {company}")
+                        print(f"🔄 Falling back to AI-powered annual report analysis...")
+                        continue
+                    
                     scraped_data = data
                     source_used = source_name
-                    print(f"Successfully scraped data from {source_name}")
+                    if source_name == 'AI PDF Parser':
+                        print(f"✅ Successfully extracted data using AI analysis of {company}'s annual report")
+                    else:
+                        print(f"Successfully scraped data from {source_name}")
                     break
             except Exception as e:
                 print(f"Error scraping from {source_name}: {e}")
@@ -447,6 +456,52 @@ class FinancialDataScraper:
         self._save_to_cache(scraped_data, cache_file)
         
         return FinancialData(**scraped_data)
+    
+    def _is_data_sufficient(self, data: Dict[str, Any]) -> bool:
+        """Check if StockAnalysis.com data is sufficient for F-Score calculation."""
+        # Key fields needed for F-Score calculation
+        critical_fields = [
+            'revenue_cur', 'revenue_prev',
+            'net_income_cur', 'net_income_prev',
+            'cfo_cur', 'cfo_prev',
+            'total_assets_cur', 'total_assets_prev'
+        ]
+        
+        # Check if critical fields are missing or zero
+        missing_critical = 0
+        for field in critical_fields:
+            value = data.get(field, 0)
+            if value == 0 or value is None:
+                missing_critical += 1
+        
+        # If more than 2 critical fields are missing/zero, data is insufficient
+        if missing_critical > 2:
+            print(f"⚠️ StockAnalysis.com missing {missing_critical}/6 critical financial fields")
+            return False
+        
+        # Check for reasonable data quality
+        revenue_cur = data.get('revenue_cur', 0)
+        net_income_cur = data.get('net_income_cur', 0)
+        total_assets_cur = data.get('total_assets_cur', 0)
+        cfo_cur = data.get('cfo_cur', 0)
+        
+        # If revenue is very small (< 10M) and net income is very different, might be incomplete
+        if revenue_cur > 0 and revenue_cur < 10 and abs(net_income_cur) > revenue_cur * 2:
+            print(f"⚠️ StockAnalysis.com data appears incomplete (revenue={revenue_cur}, net_income={net_income_cur})")
+            return False
+        
+        # If total assets is unreasonably small compared to revenue, data is likely incomplete
+        if revenue_cur > 0 and total_assets_cur > 0 and total_assets_cur < revenue_cur * 0.1:
+            print(f"⚠️ StockAnalysis.com total assets data appears incorrect ({total_assets_cur} vs revenue {revenue_cur})")
+            return False
+        
+        # If cash flow is missing for a large company, data is incomplete
+        if revenue_cur > 1000 and cfo_cur == 0:
+            print(f"⚠️ StockAnalysis.com missing cash flow data for large company (revenue={revenue_cur})")
+            return False
+        
+        print(f"✅ StockAnalysis.com data quality verified ({6-missing_critical}/6 critical fields)")
+        return True
     
     def _fill_missing_data(self, data: Dict[str, Any], company: str) -> Dict[str, Any]:
         """Fill missing financial data fields."""
