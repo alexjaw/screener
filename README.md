@@ -1,6 +1,6 @@
 # 📊 Stock Screener with Momentum & F-Score Analysis
 
-A comprehensive stock screening tool that combines **technical momentum analysis** with **fundamental Piotroski F-Score** evaluation for Nordic stocks.
+A comprehensive stock screening tool that combines **technical momentum analysis** with **enhanced fundamental Piotroski F-Score** evaluation for Nordic stocks, featuring **AI-powered financial data extraction** and **quarterly report support**.
 
 ## 🚀 Features
 
@@ -10,13 +10,14 @@ A comprehensive stock screening tool that combines **technical momentum analysis
 - **Price level tracking**: Current vs historical price points
 - **Caching system**: Fast repeated analysis with 7-day cache
 
-### 📊 **Piotroski F-Score Analysis**
+### 📊 **Enhanced Piotroski F-Score Analysis**
+- **Multi-source data fetching**: AI PDF parser + web scraping + Yahoo Finance fallback
+- **Quarterly report support**: Analyze interim reports with `--use-quarterly` flag
+- **AI-powered extraction**: OpenAI GPT-4 parses complex financial statements
 - **Comprehensive scoring**: 9-point fundamental strength assessment
-- **Two analysis modes**:
-  - **Standard mode**: Clean summary with pass/fail indicators
-  - **Enhanced mode**: Complete financial breakdown with actual numbers
-- **Financial data extraction**: Robust extraction from Yahoo Finance
+- **Intelligent fallback**: Graceful degradation when enhanced data unavailable
 - **Cache optimization**: Expensive calculations cached for performance
+- **Enhanced companies**: BioArctic, SAAB, Intellego Technologies with detailed data
 
 ### 🎯 **Integrated Screening**
 - **Quality-Momentum composite**: Combines technical + fundamental metrics
@@ -62,6 +63,9 @@ uv sync
 # Run momentum screener with F-Score integration
 uv run python screener.py --ticker-file tickers.csv
 
+# Use quarterly reports for F-Score calculation
+uv run python screener.py --use-quarterly --top-n 10
+
 # Analyze individual stock with detailed F-Score breakdown  
 uv run python fscore.py VOLV-B.ST --detailed
 
@@ -99,6 +103,12 @@ uv run python fscore.py tickers.csv --verbose --output f_scores.csv
 ```
 *Output: CSV file with F-Scores for all tickers*
 
+**F-Score with Quarterly Reports**:
+```bash
+uv run python fscore.py tickers.csv --use-quarterly --output quarterly_scores.csv
+```
+*Output: F-Scores calculated from quarterly/interim reports*
+
 **Momentum + F-Score Screening**:
 ```bash
 uv run python screener.py --ticker-file tickers.csv
@@ -112,6 +122,9 @@ uv run python screener.py --momentum-weight 0.8 --f-score-weight 0.2
 
 # Minimum F-Score filter (only stocks with F-Score ≥ 6)
 uv run python screener.py --min-f-score 6
+
+# Use quarterly reports for F-Score calculation
+uv run python screener.py --use-quarterly --top-n 10
 
 # Disable F-Score integration (momentum only)
 uv run python screener.py --no-f-score
