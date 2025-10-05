@@ -11,11 +11,11 @@ such as how leverage is measured or how tiny changes in share count
 are treated.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
-from financial_models import ParseOptions
-import financial_fetcher
-import financial_parser
+from ..data.models import ParseOptions
+from ..data.fetcher import fetch_financials
+from .parser import parse_financials
 
 
 def compute_fscore(metrics: Dict[str, bool]) -> int:
@@ -39,7 +39,7 @@ def compute_fscore(metrics: Dict[str, bool]) -> int:
     return sum(bool(v) for v in metrics.values())
 
 
-def score_company(company: str, options: Optional[ParseOptions] = None) -> int:
+def score_company(company: str, options: Optional[ParseOptions] = None, use_quarterly: bool = False) -> Dict[str, Any]:
     """Compute the Piotroski F‑score for a named company.
 
     This helper function fetches the raw financial data, parses
@@ -59,12 +59,20 @@ def score_company(company: str, options: Optional[ParseOptions] = None) -> int:
 
     Returns
     -------
-    int
-        The computed Piotroski F‑score.
+    Dict[str, Any]
+        Dictionary with F-Score and breakdown information.
     """
-    raw = financial_fetcher.fetch_financials(company)
-    metrics = financial_parser.parse_financials(raw, options)
-    return compute_fscore(metrics)
+    raw = fetch_financials(company)
+    metrics = parse_financials(raw, options)
+    f_score = compute_fscore(metrics)
+    
+    return {
+        'total_f_score': f_score,
+        'ticker': company,
+        'data_source': 'enhanced_data_fetcher',
+        'has_previous_year': True,  # Enhanced data-fetcher provides previous year data
+        'metrics': metrics
+    }
 
 
 if __name__ == "__main__":

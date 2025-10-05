@@ -24,8 +24,8 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import time
 
-from financial_models import FinancialData
-from ai_pdf_parser import AIPDFParser
+from .models import FinancialData
+from .pdf_parser import AIPDFParser
 
 
 class FinancialDataScraper:

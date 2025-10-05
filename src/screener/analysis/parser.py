@@ -37,7 +37,7 @@ fscore.py module will convert these booleans into the integer score.
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from financial_models import FinancialData, ParseOptions
+from ..data.models import FinancialData, ParseOptions
 
 
 def parse_financials(raw: FinancialData, options: Optional[ParseOptions] = None) -> Dict[str, bool]:

@@ -24,43 +24,7 @@ import fitz  # PyMuPDF
 load_dotenv()
 
 
-@dataclass
-class FinancialData:
-    """Financial data extracted from PDF."""
-    # Revenue
-    revenue_cur: float
-    revenue_prev: float
-    
-    # Net Income
-    net_income_cur: float
-    net_income_prev: float
-    
-    # Cash Flow from Operations
-    cfo_cur: float
-    cfo_prev: float
-    
-    # Balance Sheet Items
-    total_assets_cur: float
-    total_assets_prev: float
-    long_term_debt_cur: float
-    long_term_debt_prev: float
-    current_assets_cur: float
-    current_assets_prev: float
-    current_liabilities_cur: float
-    current_liabilities_prev: float
-    
-    # Cost of Goods Sold
-    cogs_cur: float
-    cogs_prev: float
-    
-    # Shares Outstanding
-    shares_cur: float
-    shares_prev: float
-    
-    # Source information
-    source_url: Optional[str] = None
-    report_date: Optional[str] = None
-    data_collected_at: Optional[str] = None
+from .models import FinancialData
 
 
 class AIPDFParser:
