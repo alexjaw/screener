@@ -494,8 +494,13 @@ Return ONLY the JSON object, no additional text.
         print(f"🎯 Using {len(financial_pages)} pages found via Table of Contents")
         financial_text = self.extract_text_from_pages(pdf_path, financial_pages[:15])  # Limit to 15 pages
         
+        # Auto-detect report type based on filename or content
+        report_type = "annual"  # Default
+        if any(keyword in pdf_path.lower() for keyword in ['q1', 'q2', 'q3', 'q4', 'quarterly', 'interim']):
+            report_type = "quarterly"
+        
         # Create the prompt for financial data extraction
-        prompt = self._create_financial_extraction_prompt(company_name, financial_text)
+        prompt = self._create_financial_extraction_prompt(company_name, financial_text, report_type)
         
         try:
             # Call OpenAI API with the extracted text
@@ -519,16 +524,39 @@ Return ONLY the JSON object, no additional text.
             print(f"❌ Error calling OpenAI API: {e}")
             return {}
     
-    def _create_financial_extraction_prompt(self, company_name: str, financial_text: str) -> str:
+    def _create_financial_extraction_prompt(self, company_name: str, financial_text: str, report_type: str = "annual", current_year: int = None, previous_year: int = None) -> str:
         """Create a detailed prompt for financial data extraction."""
+        
+        # Auto-detect years if not provided
+        if current_year is None or previous_year is None:
+            # Try to extract years from the financial text
+            import re
+            years = re.findall(r'\b(20\d{2})\b', financial_text)
+            if len(years) >= 2:
+                years = sorted(set(years), reverse=True)  # Most recent first
+                current_year = int(years[0])
+                previous_year = int(years[1])
+            else:
+                # Fallback to current year
+                from datetime import datetime
+                current_year = datetime.now().year
+                previous_year = current_year - 1
+        
+        if report_type == "quarterly":
+            period_description = f"TWO MOST RECENT PERIODS (current period and same period previous year)"
+            period_examples = f"e.g., Q2 {current_year} vs Q2 {previous_year}, or 6 months {current_year} vs 6 months {previous_year}"
+        else:
+            period_description = f"TWO MOST RECENT FISCAL YEARS (current year and previous year)"
+            period_examples = f"e.g., {current_year} vs {previous_year}"
+        
         return f"""
-You are a financial analyst extracting data from {company_name}'s annual report.
+You are a financial analyst extracting data from {company_name}'s {report_type} report.
 
-Below is the extracted text from the financial statements section of the annual report:
+Below is the extracted text from the financial statements section of the {report_type} report:
 
 {financial_text}
 
-Please extract the following financial metrics for the TWO MOST RECENT FISCAL YEARS (current and previous year):
+Please extract the following financial metrics for the {period_description} ({period_examples}):
 
 **INCOME STATEMENT:**
 - Revenue/Net Sales/Turnover (current year and previous year)
@@ -548,7 +576,7 @@ Please extract the following financial metrics for the TWO MOST RECENT FISCAL YE
 - Shares Outstanding (current year and previous year)
 
 **IMPORTANT INSTRUCTIONS:**
-1. Look for the most recent fiscal year data (usually 2024 and 2023)
+1. Look for the most recent period data ({period_examples})
 2. Extract actual numbers, not percentages or ratios
 3. Note the units (millions, thousands, etc.)
 4. If data is not available, use 0
@@ -575,8 +603,8 @@ Please extract the following financial metrics for the TWO MOST RECENT FISCAL YE
     "shares_prev": <number>,
     "units": "<millions/thousands/actual>",
     "fiscal_years": {{
-        "current": "2024",
-        "previous": "2023"
+        "current": "{current_year}",
+        "previous": "{previous_year}"
     }},
     "confidence": "<high/medium/low>",
     "notes": "<any important observations>"
@@ -587,6 +615,8 @@ Please extract the following financial metrics for the TWO MOST RECENT FISCAL YE
 8. Look for audited financial statements, not preliminary or interim reports
 9. For cash flow, use "Cash flow from operating activities" from Consolidated Statement of Cash Flows
 10. AVOID summary sections or executive summaries - use the actual financial statements
+11. For quarterly reports, look for interim financial statements or quarterly results
+12. If this is a quarterly report, compare current quarter with same quarter previous year
 
 Return ONLY the JSON object, no additional text.
 """
