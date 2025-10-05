@@ -28,28 +28,43 @@ A comprehensive stock screening tool that combines **technical momentum analysis
 ## 📁 Project Structure
 
 ```
-/home/alex/github/screener/
-├── 📜 Core Scripts
-│   ├── fscore.py          # F-Score analysis with detailed reporting
-│   ├── screener.py        # Main momentum + F-Score screener  
-│   └── ticker_data.py     # Individual ticker price analysis
-├── ⚙️  Configuration  
-│   ├── tickers.csv        # Input: stock ticker list
-│   ├── pyproject.toml     # Project dependencies & metadata
-│   ├── uv.lock           # Dependency lock file
-│   ├── .gitignore        # Git ignore rules (excludes cache/)
-│   └── README.md         # This documentation
-└── 💾 Cache & Output
-    └── cache/            # Performance cache (auto-generated, git-ignored)
+screener/
+├── src/screener/                 # Main package source code
+│   ├── core/                     # Core screening logic
+│   │   └── momentum.py           # Momentum screening algorithms
+│   ├── data/                     # Data fetching and processing
+│   │   ├── models.py            # Data models and schemas
+│   │   ├── fetcher.py           # Web scraping and data fetching
+│   │   ├── pdf_parser.py        # AI-powered PDF parsing
+│   │   ├── tickers.csv          # Default ticker list
+│   │   └── annual_report_urls.json  # Company report URLs
+│   ├── analysis/                # Financial analysis
+│   │   ├── parser.py            # F-Score calculation logic
+│   │   └── fscore_calculator.py # Enhanced F-Score calculator
+│   ├── cli/                     # Command-line interfaces
+│   │   ├── screener_cli.py      # Momentum screening CLI
+│   │   ├── fscore_cli.py        # F-Score calculation CLI
+│   │   └── ticker_cli.py        # Ticker data CLI
+│   └── utils/                   # Utility functions
+├── tests/                       # Test suite
+├── docs/                        # Documentation
+├── scripts/                     # Utility scripts
+├── screener.py                  # Entry point for screener CLI
+├── fscore.py                    # Entry point for F-Score CLI
+├── ticker_data.py               # Entry point for ticker CLI
+├── pyproject.toml               # Project configuration
+└── cache/                       # Performance cache (auto-generated, git-ignored)
 ```
 
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- **Python 3.8+**
+- **Python 3.12+**
 - **uv** package manager
 
-### Quick Start
+### Installation Options
+
+#### Option 1: Development Installation (Recommended)
 ```bash
 # Clone and setup
 git clone <your-repo>
@@ -58,19 +73,36 @@ cd screener
 # Install dependencies
 uv sync
 
-# Cache will be auto-generated on first run
+# Install package in development mode
+uv pip install -e .
+```
 
+#### Option 2: Direct Execution
+```bash
+# Clone and setup
+git clone <your-repo>
+cd screener
+
+# Install dependencies
+uv sync
+
+# Run directly without installation
+uv run python screener.py --ticker-file src/screener/data/tickers.csv
+```
+
+### Quick Start
+```bash
 # Run momentum screener with F-Score integration
-uv run python screener.py --ticker-file tickers.csv
+uv run python screener.py --ticker-file src/screener/data/tickers.csv
 
 # Use quarterly reports for F-Score calculation
 uv run python screener.py --use-quarterly --top-n 10
 
 # Analyze individual stock with detailed F-Score breakdown  
-uv run python fscore.py VOLV-B.ST --detailed
+uv run python fscore.py BIOA-B.ST --detailed
 
 # Get simple price data for a stock
-uv run python ticker_data.py VOLV-B.ST
+uv run python ticker_data.py BIOA-B.ST
 ```
 
 ## 📖 Usage Examples
