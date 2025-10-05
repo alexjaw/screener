@@ -44,7 +44,7 @@ Examples:
     for ticker in tickers:
         print(f"\nProcessing {ticker}...")
         try:
-            result = score_company(ticker, use_cache=not args.no_cache, use_quarterly=args.use_quarterly)
+            result = score_company(ticker, use_quarterly=args.use_quarterly)
             results.append(result)
             
             if args.detailed:

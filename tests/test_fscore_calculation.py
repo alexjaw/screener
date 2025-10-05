@@ -4,9 +4,9 @@ Unit tests for F-Score calculation logic using controlled fake data.
 These tests validate the calculation logic independently of data source issues.
 """
 
-from financial_models import FinancialData
-import fscore
-import financial_parser
+from src.screener.data.models import FinancialData
+from src.screener.analysis.fscore_calculator import score_company, compute_fscore
+from src.screener.analysis.parser import parse_financials
 
 
 def test_perfect_company_fscore():
@@ -26,7 +26,7 @@ def test_perfect_company_fscore():
     )
     
     metrics = parser.parse_financials(perfect_company)
-    f_score = fscore.compute_fscore(metrics)
+    f_score = compute_fscore(metrics)
     
     assert f_score == 9, f"Perfect company should get 9/9, got {f_score}/9"
     print(f"✅ Perfect Company: {f_score}/9")
@@ -48,7 +48,7 @@ def test_terrible_company_fscore():
     )
     
     metrics = parser.parse_financials(terrible_company)
-    f_score = fscore.compute_fscore(metrics)
+    f_score = compute_fscore(metrics)
     
     assert f_score == 0, f"Terrible company should get 0/9, got {f_score}/9"
     print(f"✅ Terrible Company: {f_score}/9")
@@ -70,7 +70,7 @@ def test_mixed_company_fscore():
     )
     
     metrics = parser.parse_financials(mixed_company)
-    f_score = fscore.compute_fscore(metrics)
+    f_score = compute_fscore(metrics)
     
     # Mixed company should get around 5/9 (allow some flexibility)
     assert 4 <= f_score <= 6, f"Mixed company should get 4-6/9, got {f_score}/9"
@@ -95,7 +95,7 @@ def test_edge_cases():
     )
     
     metrics = parser.parse_financials(zero_company)
-    f_score = fscore.compute_fscore(metrics)
+    f_score = compute_fscore(metrics)
     
     # Zero company should get 0/9 (no positive metrics possible)
     # Note: Edge case with zero values might get 1/9 due to parser logic

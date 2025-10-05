@@ -10,11 +10,11 @@ The test suite ensures that:
 3. All edge cases and error conditions are handled properly
 """
 
-from financial_models import FinancialData, ParseOptions
-import test_data
-import financial_fetcher
-import financial_parser
-import data_fetcher_fscore as fscore
+from src.screener.data.models import FinancialData, ParseOptions
+from . import test_data
+from src.screener.data.fetcher import fetch_financials
+from src.screener.analysis.parser import parse_financials
+from src.screener.analysis.fscore_calculator import score_company
 
 
 class TestDataValidation:
@@ -63,8 +63,8 @@ class TestCurrentImplementation:
     def test_parser_produces_metrics(self):
         """Test that parser produces all required metrics."""
         for company in test_data.get_test_companies():
-            raw_data = financial_fetcher.fetch_financials(company)
-            metrics = financial_parser.parse_financials(raw_data)
+            raw_data = fetch_financials(company)
+            metrics = parse_financials(raw_data)
             
             # Check all required metrics are present
             required_metrics = [
@@ -81,13 +81,13 @@ class TestCurrentImplementation:
         """Test that custom parse options work correctly."""
         # Test SAAB with absolute leverage (should be different from ratio-based)
         options = ParseOptions(leverage_use_ratio=False)
-        score = fscore.score_company("SAAB", options)
+        score = score_company("SAAB", options)
         assert isinstance(score, int)
         assert 0 <= score <= 9
         
         # Test BioArctic with share threshold
         options = ParseOptions(share_change_threshold=0.005)
-        score = fscore.score_company("BioArctic", options)
+        score = score_company("BioArctic", options)
         assert isinstance(score, int)
         assert 0 <= score <= 9
     
@@ -99,7 +99,7 @@ class TestErrorHandling:
     def test_unknown_company_fetcher(self):
         """Test that fetcher raises error for unknown companies."""
         try:
-            financial_fetcher.fetch_financials("Unknown Company")
+            fetch_financials("Unknown Company")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
@@ -115,13 +115,13 @@ class TestErrorHandling:
     def test_empty_company_name(self):
         """Test handling of empty company names."""
         try:
-            financial_fetcher.fetch_financials("")
+            fetch_financials("")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
         
         try:
-            financial_fetcher.fetch_financials("   ")
+            fetch_financials("   ")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected
@@ -149,7 +149,7 @@ def run_manual_tests():
     print("\n🔧 Testing current implementation...")
     for company in companies:
         try:
-            score = fscore.score_company(company)
+            score = score_company(company)
             expected = expected_scores[company]
             status = "✅" if score == expected else "❌"
             print(f"{status} {company}: {score}/9 (expected {expected})")
@@ -160,7 +160,7 @@ def run_manual_tests():
     print("\n⚙️ Testing custom options...")
     try:
         options = ParseOptions(leverage_use_ratio=False)
-        score = fscore.score_company("SAAB", options)
+        score = score_company("SAAB", options)
         print(f"✅ SAAB with absolute leverage: {score}/9")
     except Exception as e:
         print(f"❌ Custom options test failed: {e}")

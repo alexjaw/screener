@@ -8,7 +8,7 @@ The data is extracted from actual annual reports and represents ground truth
 for F-Score calculations on these specific companies.
 """
 
-from financial_models import FinancialData
+from src.screener.data.models import FinancialData
 
 
 # Test company identifiers

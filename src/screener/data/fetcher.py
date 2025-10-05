@@ -532,10 +532,20 @@ class FinancialDataScraper:
     def _get_hardcoded_data(self, company: str) -> FinancialData:
         """Fallback to hardcoded data if scraping fails."""
         # Import the test data as fallback
-        import test_data
+        from tests.test_data import get_test_financial_data
+        
+        # Map tickers to company names for test data
+        ticker_to_company = {
+            'BIOA-B.ST': 'BioArctic',
+            'SAAB-B.ST': 'SAAB', 
+            'INT.ST': 'Intellego Technologies',
+        }
+        
+        # Use mapped company name if available, otherwise use original
+        company_name = ticker_to_company.get(company, company)
         
         try:
-            hardcoded_data = test_data.get_test_financial_data(company)
+            hardcoded_data = get_test_financial_data(company_name)
             # Convert to dict and add source info
             data_dict = {
                 'revenue_cur': hardcoded_data.revenue_cur,

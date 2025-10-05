@@ -46,7 +46,7 @@ class AIPDFParser:
     def _load_annual_report_urls(self) -> Dict[str, Any]:
         """Load annual report URLs from configuration file."""
         try:
-            with open("annual_report_urls.json", "r") as f:
+            with open(os.path.join(os.path.dirname(__file__), "annual_report_urls.json"), "r") as f:
                 return json.load(f)
         except FileNotFoundError:
             print("⚠️ annual_report_urls.json not found, using fallback URLs")
