@@ -179,6 +179,7 @@ def momentum_screen(
     end_date: Optional[str] = None,
     use_cache: bool = True,
     force_refresh: bool = False,
+    use_quarterly: bool = False,
 ) -> pd.DataFrame:
     tickers = list(dict.fromkeys(tickers))
     if restrict_suffixes:
@@ -233,7 +234,7 @@ def momentum_screen(
         f_scores = []
         for ticker in df.index:
             try:
-                f_score_result = calculate_f_score(ticker)
+                f_score_result = calculate_f_score(ticker, use_quarterly=use_quarterly)
                 f_scores.append(f_score_result['total_f_score'])
             except Exception as e:
                 print(f"Warning: Could not calculate F-Score for {ticker}: {e}")
@@ -413,6 +414,11 @@ def main():
         default=0.7,
         help="Weight for momentum in composite score (default: 0.7)"
     )
+    parser.add_argument(
+        "--use-quarterly",
+        action='store_true',
+        help="Prefer quarterly/interim reports over annual reports for F-Score calculation"
+    )
     
     args = parser.parse_args()
     
@@ -461,7 +467,7 @@ def main():
         f_score_weight=args.f_score_weight,
         momentum_weight=args.momentum_weight
     )
-    ranked = momentum_screen(universe, cfg, debug_ticker=args.debug_ticker, start_date=start_date_adj, end_date=end_date_adj, use_cache=not args.no_cache, force_refresh=args.force_refresh)
+    ranked = momentum_screen(universe, cfg, debug_ticker=args.debug_ticker, start_date=start_date_adj, end_date=end_date_adj, use_cache=not args.no_cache, force_refresh=args.force_refresh, use_quarterly=args.use_quarterly)
     
     # Configure pandas to display all columns
     import pandas as pd
