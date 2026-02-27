@@ -32,3 +32,8 @@ Repository = "https://github.com/alexjaw/screener"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/screener"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
