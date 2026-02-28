@@ -24,6 +24,7 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import time
 
+from ..utils.stockanalysis_lookup import find_ticker_stockanalysis
 from .models import FinancialData
 from .pdf_parser import AIPDFParser
 
@@ -320,7 +321,7 @@ class FinancialDataScraper:
     
     def _scrape_stockanalysis(self, company: str) -> Optional[Dict[str, Any]]:
         """Scrape financial data from stockanalysis.com for validation."""
-        # Map company names to ticker symbols
+        # Prefer hardcoded map, then resolve via stockanalysis.com lookup
         ticker_map = {
             'saab': 'SAAB.B',
             'bioarctic': 'BIOA.B',
@@ -328,11 +329,15 @@ class FinancialDataScraper:
         }
         
         company_key = company.lower().strip()
-        if company_key not in ticker_map:
-            return None
-        
-        ticker = ticker_map[company_key]
-        url = f"https://stockanalysis.com/quote/sto/{ticker}/financials/"
+        ticker = ticker_map.get(company_key)
+        if not ticker:
+            match = find_ticker_stockanalysis(company)
+            if not match:
+                return None
+            ticker = match.symbol
+            url = match.financials_url()
+        else:
+            url = f"https://stockanalysis.com/quote/sto/{ticker}/financials/"
         
         response = self._fetch_url(url)
         if not response:
